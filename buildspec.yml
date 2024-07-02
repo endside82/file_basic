@@ -1,0 +1,36 @@
+version: 0.2
+# env variables are only for codebuild ubuntu standard 7.0 image
+# https://github.com/aws/aws-codebuild-docker-images/blob/master/ubuntu/standard/7.0/Dockerfile
+env:
+  variables:
+    JAVA_HOME: "/usr/lib/jvm/java-21-amazon-corretto"
+    JDK_HOME: "/usr/lib/jvm/java-21-amazon-corretto"
+    JRE_HOME: "/usr/lib/jvm/java-21-amazon-corretto"
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region {AWS-REGION-NAME} | docker login --username AWS --password-stdin {AWS-ECR-REPOSITORY-ADDRESS}
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - ./gradlew build -x test
+      - echo $(basename ./build/libs/*.jar)
+      - echo $(basename ./build/dependency/*.*)
+      - pwd
+      - docker build --build-arg SPRING_PROFILES_ACTIVE=dev --build-arg JAVA_OPTS='-XX:+UseG1GC -Xms512m -Xmx512m' -t {AWS-ECR-REPOSITORY-ADDRESS}/dev-file:latest . -f dev.Dockerfile --pull --no-cache
+
+  post_build:
+    commands:
+      - echo $(basename ./build/libs/*.jar)
+      - pwd
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - docker push {AWS-ECR-REPOSITORY-ADDRESS}/dev-file:latest
+artifacts:
+  files:
+    - '*'
+cache:
+  paths:
+    - '/root/.gradle/caches/**/*'
