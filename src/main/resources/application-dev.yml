@@ -1,0 +1,53 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  servlet:
+    multipart:
+      max-file-size: 300MB
+      max-request-size: 300MB
+server:
+  error:
+    include-exception: false
+    include-stacktrace: never
+    path: '/file/error'
+    whitelabel:
+      enabled: false
+  port: 38082
+redis:
+  host: DEV-REDIS-ADDRESS
+  port: 6379
+  auth: false
+  authentication:
+    database: 0
+  user:
+    database: 1
+  type: STANDARD
+ssh:
+  use: false
+amazon:
+  region: AWS-REGION-NAME
+  s3:
+    ec2policy: false
+    profile-bucket:
+      name: AWS-S3-BUCKET-NAME-PROFILE
+    resource-bucket:
+      name: AWS-S3-BUCKET-NAME-RESOURCE
+    credentials:
+      access-key: AWS-S3-IAM-CREDENTIAL-ACCESS-KEY
+      secret-key: AWS-S3-IAM-CREDENTIAL-SECRET-KEY
+  image:
+    path: images
+  video:
+    path: video
+  common:
+    path: common
+jwt:
+  secret: mysecret
+visible:
+  stack:
+    trace: true
+logging:
+  level:
+    root: info
+    web: info

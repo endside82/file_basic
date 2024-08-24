@@ -1,0 +1,78 @@
+plugins {
+    id 'org.springframework.boot' version '3.3.1'
+    id 'io.spring.dependency-management' version '1.1.5'
+    id 'java'
+    id 'idea'
+}
+
+base {
+    archivesBaseName 'file'
+    group 'com.endside.file'
+    version '1.0-SNAPSHOT'
+}
+
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+ext {
+    awssdkVersion = "2.26.10"
+    lombokVersion = "1.18.32"
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+    maven { url 'https://repo.spring.io/milestone' }
+    maven { url 'https://repo.spring.io/snapshot' }
+    maven { url 'https://repo.maven.apache.org/maven2' }
+    maven { url 'https://repo.gradle.org/gradle/libs-releases-local' }
+}
+
+
+dependencies {
+    developmentOnly "org.springframework.boot:spring-boot-devtools"
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.boot:spring-boot-starter-web-services"
+    implementation "org.springframework.boot:spring-boot-starter-security"
+    implementation "org.springframework.boot:spring-boot-starter-data-redis"
+    implementation "com.drewnoakes:metadata-extractor:2.18.0"
+    implementation "com.auth0:java-jwt:4.4.0" // 4.x.x
+    implementation platform("software.amazon.awssdk:bom:${awssdkVersion}")
+    implementation "software.amazon.awssdk:bom:${awssdkVersion}"
+    implementation "software.amazon.awssdk:s3:${awssdkVersion}"
+    implementation 'org.slf4j:slf4j-api:2.0.7'
+    implementation 'org.slf4j:jcl-over-slf4j:2.0.7'
+    testImplementation "ch.qos.logback:logback-classic:1.2.12"
+    implementation "com.jcraft:jsch:0.1.55"
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testImplementation("org.springframework.boot:spring-boot-starter-test") {
+        exclude group: "org.junit.vintage", module: "junit-vintage-engine"
+    }
+}
+
+task unpackJar(type: Copy) {
+    def unpackDir = "$buildDir/dependency"
+    def jarFile = "$buildDir/libs/${rootProject.name}-${version}.jar"
+    delete unpackDir
+    from zipTree(jarFile)
+    into unpackDir
+}
+
+build {
+    finalizedBy unpackJar
+}
+
+test {
+    useJUnitPlatform()
+}
+
