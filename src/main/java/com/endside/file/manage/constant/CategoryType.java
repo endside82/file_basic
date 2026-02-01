@@ -5,6 +5,11 @@ import lombok.Getter;
 public enum CategoryType {
     PROFILE("profile"),
     RESOURCE("resource"),
+    LECTURE("lecture"),
+    CHAPTER("chapter"),
+    QUESTION("question"),
+    QUIZ("quiz"),
+    UNIVERSITY("university"),
     UNKNOWN("unknown");
 
     @Getter
@@ -23,10 +28,15 @@ public enum CategoryType {
     }
 
     public static CategoryType getStorageTypeByCategory(String category) {
-        switch (category.toLowerCase()) {
-            case "profile": return PROFILE;
-            case "resource": return RESOURCE;
-            default: return UNKNOWN;
-        }
+        return switch (category.toLowerCase()) {
+            case "profile" -> PROFILE;
+            case "resource" -> RESOURCE;
+            case "lecture" -> LECTURE;
+            case "chapter" -> CHAPTER;
+            case "question" -> QUESTION;
+            case "quiz" -> QUIZ;
+            case "university" -> UNIVERSITY;
+            default -> UNKNOWN;
+        };
     }
 }

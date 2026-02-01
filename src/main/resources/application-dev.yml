@@ -15,9 +15,10 @@ server:
       enabled: false
   port: 38082
 redis:
-  host: DEV-REDIS-ADDRESS
-  port: 6379
-  auth: false
+  host: ${REDIS_HOST:127.0.0.1}
+  port: ${REDIS_PORT:6379}
+  auth: ${REDIS_AUTH:false}
+  password: ${REDIS_PASSWORD:}
   authentication:
     database: 0
   user:
@@ -26,16 +27,16 @@ redis:
 ssh:
   use: false
 amazon:
-  region: AWS-REGION-NAME
+  region: ${AWS_REGION:ap-northeast-2}
   s3:
     ec2policy: false
     profile-bucket:
-      name: AWS-S3-BUCKET-NAME-PROFILE
+      name: ${S3_PROFILE_BUCKET:your-profile-bucket}
     resource-bucket:
-      name: AWS-S3-BUCKET-NAME-RESOURCE
+      name: ${S3_RESOURCE_BUCKET:your-resource-bucket}
     credentials:
-      access-key: AWS-S3-IAM-CREDENTIAL-ACCESS-KEY
-      secret-key: AWS-S3-IAM-CREDENTIAL-SECRET-KEY
+      access-key: ${AWS_S3_ACCESS_KEY:your-access-key}
+      secret-key: ${AWS_S3_SECRET_KEY:your-secret-key}
   image:
     path: images
   video:
@@ -43,7 +44,9 @@ amazon:
   common:
     path: common
 jwt:
-  secret: mysecret
+  secret: ${JWT_SECRET:your-jwt-secret-key-min-32-characters}
+admin:
+  verification-key: ${ADMIN_VERIFICATION_KEY:your-admin-key}
 visible:
   stack:
     trace: true
