@@ -1,6 +1,6 @@
 plugins {
-    id 'org.springframework.boot' version '3.3.1'
-    id 'io.spring.dependency-management' version '1.1.5'
+    id 'org.springframework.boot' version '3.5.7'
+    id 'io.spring.dependency-management' version '1.1.7'
     id 'java'
     id 'idea'
 }
@@ -13,8 +13,9 @@ base {
 
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 configurations {
@@ -24,45 +25,53 @@ configurations {
 }
 
 ext {
-    awssdkVersion = "2.26.10"
-    lombokVersion = "1.18.32"
+    awssdkVersion = "2.37.3"
+    lombokVersion = "1.18.36"
+    sshdVersion = "2.13.2"
 }
 
 repositories {
     mavenCentral()
-    maven { url 'https://jitpack.io' }
-    maven { url 'https://repo.spring.io/milestone' }
-    maven { url 'https://repo.spring.io/snapshot' }
-    maven { url 'https://repo.maven.apache.org/maven2' }
-    maven { url 'https://repo.gradle.org/gradle/libs-releases-local' }
+    maven { url = uri('https://jitpack.io') }
 }
 
 
 dependencies {
-    developmentOnly "org.springframework.boot:spring-boot-devtools"
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation "org.springframework.boot:spring-boot-starter-web-services"
     implementation "org.springframework.boot:spring-boot-starter-security"
     implementation "org.springframework.boot:spring-boot-starter-data-redis"
-    implementation "com.drewnoakes:metadata-extractor:2.18.0"
-    implementation "com.auth0:java-jwt:4.4.0" // 4.x.x
-    implementation platform("software.amazon.awssdk:bom:${awssdkVersion}")
-    implementation "software.amazon.awssdk:bom:${awssdkVersion}"
-    implementation "software.amazon.awssdk:s3:${awssdkVersion}"
-    implementation 'org.slf4j:slf4j-api:2.0.7'
-    implementation 'org.slf4j:jcl-over-slf4j:2.0.7'
-    testImplementation "ch.qos.logback:logback-classic:1.2.12"
-    implementation "com.jcraft:jsch:0.1.55"
+    implementation "com.auth0:java-jwt:4.4.0"
+
+    // SSH - Apache MINA SSHD (JSch 대체)
+    implementation "org.apache.sshd:sshd-core:${sshdVersion}"
+    implementation "org.apache.sshd:sshd-sftp:${sshdVersion}"
+
+    implementation "org.projectlombok:lombok:${lombokVersion}"
     compileOnly "org.projectlombok:lombok:${lombokVersion}"
+
+    developmentOnly "org.springframework.boot:spring-boot-devtools"
+
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude group: "org.junit.vintage", module: "junit-vintage-engine"
     }
+    testImplementation "org.springframework.security:spring-security-test"
+
+    testImplementation "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+    // AWS SDK
+    implementation platform("software.amazon.awssdk:bom:${awssdkVersion}")
+    implementation "software.amazon.awssdk:s3:${awssdkVersion}"
+    implementation "software.amazon.awssdk:apache-client:${awssdkVersion}"
 }
 
 task unpackJar(type: Copy) {
-    def unpackDir = "$buildDir/dependency"
-    def jarFile = "$buildDir/libs/${rootProject.name}-${version}.jar"
+    def unpackDir = layout.buildDirectory.dir("dependency").get().asFile
+    def jarFile = layout.buildDirectory.file("libs/${rootProject.name}-${version}.jar").get().asFile
     delete unpackDir
     from zipTree(jarFile)
     into unpackDir
@@ -75,4 +84,3 @@ build {
 test {
     useJUnitPlatform()
 }
-
