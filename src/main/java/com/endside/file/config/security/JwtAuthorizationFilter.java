@@ -4,11 +4,14 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.exceptions.*;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.endside.file.config.error.ErrorCode;
 import com.endside.file.config.error.ResponseConstants;
 import com.endside.file.config.security.constants.JwtProperties;
 import com.endside.file.user.constants.LoginType;
+import com.endside.file.user.constants.Os;
+import com.endside.file.user.constants.UserStatus;
 import com.endside.file.user.model.LoginAddInfo;
 import com.endside.file.user.service.JwtAuthenticationService;
 import lombok.extern.slf4j.Slf4j;
@@ -40,11 +43,12 @@ public class JwtAuthorizationFilter extends BasicAuthenticationFilter {
     private final JwtAuthenticationService jwtAuthenticationService;
     private final ArrayList<String> excludeURL; // jwt를 넣더라도 check 하지 않는 API URL 리스트
     private final JWTVerifier jwtVerifier;
+    private String adminKey;
 
-
-    public JwtAuthorizationFilter(AuthenticationManager authenticationManager, JwtAuthenticationService jwtAuthenticationService, String secret) {
+    public JwtAuthorizationFilter(AuthenticationManager authenticationManager, JwtAuthenticationService jwtAuthenticationService,String adminKey, String secret) {
         super(authenticationManager);
         this.jwtAuthenticationService = jwtAuthenticationService;
+        this.adminKey = adminKey;
         excludeURL = new ArrayList<>();
         // excludeURL.add("/some/exclude/url");
         // strict mode JWT Verifier
@@ -60,12 +64,12 @@ public class JwtAuthorizationFilter extends BasicAuthenticationFilter {
         // 권한 헤더(JWT) 취득
         String header = request.getHeader(JwtProperties.HEADER_AUTH);
         String requestUrl = request.getRequestURI();
-        // JWT 없거나 JWT 검사할 필요가 없으면 스킵
-        if (header == null || isContainExcludeUrl(requestUrl)) {
+
+        // JWT 없거나 JWT 검사할 필요가 없으면 스킵 (+ 어드민 키 포함되는지)
+        if (header == null || isContainExcludeUrl(requestUrl) || requestUrl.contains(adminKey)) {
             chain.doFilter(request, response);
             return;
         }
-
         // 유저 정보 취득
         Authentication authentication = getUsernamePasswordAuthentication(request, response);
         if(authentication == null) {
@@ -97,6 +101,7 @@ public class JwtAuthorizationFilter extends BasicAuthenticationFilter {
         String converted  = decodedJWT.getSubject();
         String issueNo  = decodedJWT.getId();
         String loginType = decodedJWT.getClaim(JwtProperties.CLAIM_LOGIN_TYPE).asString();
+        Integer os = decodedJWT.getClaim(JwtProperties.CLAIM_OS).asInt();
         log.debug("param issueNo  : " + issueNo);
         // 토큰 발행 번호로 블랙리스트 조회
         ErrorCode errorCode = jwtAuthenticationService.checkBlackListToken(issueNo);
@@ -118,11 +123,15 @@ public class JwtAuthorizationFilter extends BasicAuthenticationFilter {
             }
             LoginAddInfo loginAddInfo = new LoginAddInfo();
             loginAddInfo.setLoginType(LoginType.getLoginTypeAsType(loginType));
+            if (os != null) {
+                loginAddInfo.setOs(Os.valueOfTypeNum(os));
+            }
             UserPrincipal principal = UserPrincipal.builder()
                     .userId(userId)
                     .userHex(converted)
                     .loginAddInfo(loginAddInfo)
                     .email(email)
+                    .status(UserStatus.NORMAL.getStatus())
                     .build();
             return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
         }
@@ -138,7 +147,7 @@ public class JwtAuthorizationFilter extends BasicAuthenticationFilter {
         resultMap.put(ResponseConstants.ERROR_CODE , errorCode);
         resultMap.put(ResponseConstants.ERROR_MESSAGE , errorMessage);
         resultMap.put(ResponseConstants.ERROR_TIMESTAMP , ResponseConstants.DATE_FORMAT.format(new Date()));
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = JsonMapper.builder().findAndAddModules().build();
         PrintWriter out = response.getWriter();
         out.print(mapper.writeValueAsString(resultMap));
         out.flush();

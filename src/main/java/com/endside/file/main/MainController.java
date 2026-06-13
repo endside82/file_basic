@@ -25,8 +25,7 @@ public class MainController {
     // auth token refresh
     @RequestMapping(value = {"/file/mng/jwt/hello"}, method = {RequestMethod.POST})
     @ResponseBody
-    public ResponseEntity<?> jwtConfirm(@RequestHeader(name = "Authorization") String authToken,
-            Authentication authentication ) throws Exception {
+    public ResponseEntity<?> jwtConfirm(@RequestHeader(name = "Authorization") String authToken, Authentication authentication ) {
         return ResponseEntity.ok().body("hello jwt");
     }
 }

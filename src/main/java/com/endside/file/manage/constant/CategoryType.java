@@ -8,8 +8,10 @@ public enum CategoryType {
     LECTURE("lecture"),
     CHAPTER("chapter"),
     QUESTION("question"),
-    QUIZ("quiz"),
     UNIVERSITY("university"),
+    COURSE("course"),
+    STUDY("study"),
+    MODULE("module"),
     UNKNOWN("unknown");
 
     @Getter
@@ -34,8 +36,10 @@ public enum CategoryType {
             case "lecture" -> LECTURE;
             case "chapter" -> CHAPTER;
             case "question" -> QUESTION;
-            case "quiz" -> QUIZ;
             case "university" -> UNIVERSITY;
+            case "course" -> COURSE;
+            case "study" -> STUDY;
+            case "module" -> MODULE;
             default -> UNKNOWN;
         };
     }

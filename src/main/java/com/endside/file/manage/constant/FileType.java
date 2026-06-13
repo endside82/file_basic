@@ -3,7 +3,12 @@ package com.endside.file.manage.constant;
 import lombok.Getter;
 
 public enum FileType {
-    IMAGE(1,"image"),VIDEO(2,"video"),NONE(3,"none"),UNKNOWN(0,"unknown");
+    IMAGE(1, "image"),
+    VIDEO(2, "video"),
+    NONE(3, "none"),
+    STATIC(4, "static"),
+    AUDIO(5, "audio"),
+    UNKNOWN(0, "unknown");
 
     private int type;
     @Getter
@@ -23,11 +28,13 @@ public enum FileType {
     }
 
     public static FileType getFileTypeByTypePath(String typePath) {
-        switch (typePath.toLowerCase()) {
-            case "image": return IMAGE;
-            case "video": return VIDEO;
-            case "none": return NONE;
-            default: return UNKNOWN;
-        }
+        return switch (typePath.toLowerCase()) {
+            case "image" -> IMAGE;
+            case "video" -> VIDEO;
+            case "none" -> NONE;
+            case "static" -> STATIC;
+            case "audio" -> AUDIO;
+            default -> UNKNOWN;
+        };
     }
 }

@@ -1,16 +1,12 @@
 plugins {
-    id 'org.springframework.boot' version '3.5.7'
+    id 'org.springframework.boot' version '4.0.6'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'java'
     id 'idea'
 }
 
-base {
-    archivesBaseName 'file'
-    group 'com.endside.file'
-    version '1.0-SNAPSHOT'
-}
-
+group = 'com.endside.file'
+version = '1.0-SNAPSHOT'
 
 java {
     toolchain {
@@ -35,7 +31,6 @@ repositories {
     maven { url = uri('https://jitpack.io') }
 }
 
-
 dependencies {
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation "org.springframework.boot:spring-boot-starter-web-services"
@@ -43,7 +38,6 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-data-redis"
     implementation "com.auth0:java-jwt:4.4.0"
 
-    // SSH - Apache MINA SSHD (JSch 대체)
     implementation "org.apache.sshd:sshd-core:${sshdVersion}"
     implementation "org.apache.sshd:sshd-sftp:${sshdVersion}"
 
@@ -59,26 +53,14 @@ dependencies {
         exclude group: "org.junit.vintage", module: "junit-vintage-engine"
     }
     testImplementation "org.springframework.security:spring-security-test"
-
     testImplementation "org.projectlombok:lombok:${lombokVersion}"
     testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 
-    // AWS SDK
+    implementation "org.apache.poi:poi-ooxml:5.3.0"
+
     implementation platform("software.amazon.awssdk:bom:${awssdkVersion}")
     implementation "software.amazon.awssdk:s3:${awssdkVersion}"
     implementation "software.amazon.awssdk:apache-client:${awssdkVersion}"
-}
-
-task unpackJar(type: Copy) {
-    def unpackDir = layout.buildDirectory.dir("dependency").get().asFile
-    def jarFile = layout.buildDirectory.file("libs/${rootProject.name}-${version}.jar").get().asFile
-    delete unpackDir
-    from zipTree(jarFile)
-    into unpackDir
-}
-
-build {
-    finalizedBy unpackJar
 }
 
 test {

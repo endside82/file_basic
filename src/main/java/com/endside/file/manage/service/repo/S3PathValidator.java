@@ -15,7 +15,14 @@ import java.util.regex.Pattern;
 public class S3PathValidator {
 
     private String profilePath = "\\w+/\\w+/.+";
+    private String studyPath = "\\w+/\\w+/.+";
     private String resourcePath = "\\w+/\\d{8}/.+";
+    private String lecturePath = "\\w+/\\d{8}/.+";
+    private String chapterPath = "\\w+/\\d{8}/.+";
+    private String questionPath = "\\w+/\\d{8}/.+";
+    private String universityPath = "\\w+/\\d{8}/.+";
+    private String coursePath = "\\w+/\\d{8}/.+";
+    private String modulePath = "\\w+/\\d{8}/.+";
     // private String groupPath = "\\w+/\\d{8}/.+";
     // private String adItemPath = "\\w+/\\w+/.+";
     // private String snsPath = "\\w+/\\w+/\\w+/.+";
@@ -26,11 +33,17 @@ public class S3PathValidator {
     public S3PathValidator() {
         patterns.put(CategoryType.PROFILE, Pattern.compile(profilePath));
         patterns.put(CategoryType.RESOURCE, Pattern.compile(resourcePath));
+        patterns.put(CategoryType.LECTURE, Pattern.compile(lecturePath));
+        patterns.put(CategoryType.CHAPTER, Pattern.compile(chapterPath));
+        patterns.put(CategoryType.QUESTION, Pattern.compile(questionPath));
+        patterns.put(CategoryType.UNIVERSITY, Pattern.compile(universityPath));
+        patterns.put(CategoryType.COURSE, Pattern.compile(coursePath));
+        patterns.put(CategoryType.STUDY, Pattern.compile(studyPath));
+        patterns.put(CategoryType.MODULE, Pattern.compile(modulePath));
     }
 
     public boolean isValid(CategoryType categoryType, String path) {
-
-        if (!StringUtils.hasText(path)) {
+        if (!StringUtils.hasText(path) || path.contains("\0")) {
             throw new InvalidParameterException(ErrorCode.INVALID_REQUEST_FILE_PATH);
         }
 

@@ -3,7 +3,9 @@ package com.endside.file.util;
 import com.endside.file.config.error.ErrorCode;
 import com.endside.file.config.error.exception.InvalidParameterException;
 import com.endside.file.config.error.exception.NotFoundException;
+import com.endside.file.config.error.exception.RestException;
 import com.endside.file.config.error.exception.ServiceUnavailableException;
+import com.endside.file.manage.constant.FileConfig;
 import com.endside.file.manage.dto.FileBucket;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,14 +31,51 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import jakarta.annotation.PostConstruct;
+
+import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
 @Component
 public class AmazonS3Util {
+
+    private static final Map<String, String> CONTENT_TYPE_MAP = Map.ofEntries(
+            Map.entry("svg", "image/svg+xml"),
+            Map.entry("png", "image/png"),
+            Map.entry("jpg", "image/jpeg"),
+            Map.entry("jpeg", "image/jpeg"),
+            Map.entry("gif", "image/gif"),
+            Map.entry("webp", "image/webp"),
+            Map.entry("bmp", "image/bmp"),
+            Map.entry("ico", "image/x-icon"),
+            Map.entry("pdf", "application/pdf"),
+            Map.entry("json", "application/json"),
+            Map.entry("xml", "application/xml"),
+            Map.entry("txt", "text/plain"),
+            Map.entry("html", "text/html"),
+            Map.entry("css", "text/css"),
+            Map.entry("js", "application/javascript"),
+            Map.entry("mp4", "video/mp4"),
+            Map.entry("webm", "video/webm"),
+            Map.entry("mp3", "audio/mpeg"),
+            Map.entry("wav", "audio/wav"),
+            Map.entry("aac", "audio/aac"),
+            Map.entry("ogg", "audio/ogg"),
+            Map.entry("flac", "audio/flac"),
+            Map.entry("wma", "audio/x-ms-wma"),
+            Map.entry("m4a", "audio/mp4"),
+            Map.entry("zip", "application/zip")
+    );
+
+    public static String getContentTypeByFormatName(String formatName) {
+        if (formatName == null || formatName.isEmpty()) {
+            return "application/octet-stream";
+        }
+        return CONTENT_TYPE_MAP.getOrDefault(formatName.toLowerCase(), "application/octet-stream");
+    }
 
     @Value("${amazon.region}")
     private String amazonRegionName;
@@ -111,13 +150,12 @@ public class AmazonS3Util {
     }
 
     public String uploadInputStream(String bucketName, String saveFileName, String contentType, long size,
-                                    InputStream inputStream, String md5) throws Exception {
+                                    InputStream inputStream, String md5) {
         try {
 
             PutObjectRequest.Builder builder = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(saveFileName)
-                    .acl(ObjectCannedACL.PUBLIC_READ_WRITE)
                     .contentType(contentType)
                     .contentLength(size);
             if (md5 != null) {
@@ -127,12 +165,12 @@ public class AmazonS3Util {
             PutObjectResponse putObjectResponse = this.s3Client.putObject(objectRequest, RequestBody.fromInputStream(inputStream, size));
         } catch (SdkClientException e) {
             log.error(e.toString());
-            log.error("uploadInputStream : SdkClientException (bucketName: {}, saveFileName: {}, contentType: {} )",
+            log.debug("uploadInputStream : SdkClientException (bucketName: {}, saveFileName: {}, contentType: {} )",
                     bucketName, saveFileName, contentType);
             throw new ServiceUnavailableException(ErrorCode.FAILED_UPLOAD_TO_EXTERNAL);
         } catch (S3Exception e) {
             log.error(e.toString());
-            log.error("uploadInputStream : S3Exception (bucketName: {}, saveFileName: {}, contentType: {} )",
+            log.debug("uploadInputStream : S3Exception (bucketName: {}, saveFileName: {}, contentType: {} )",
                     bucketName, saveFileName, contentType);
             throw new ServiceUnavailableException(ErrorCode.FAILED_UPLOAD_TO_EXTERNAL);
         }
@@ -140,20 +178,26 @@ public class AmazonS3Util {
         return saveFileName;
     }
 
-    public String uploadMultipartFile(String bucketName, String path, MultipartFile file, String md5) throws Exception {
+    public String uploadMultipartFile(String bucketName, String path, MultipartFile file, String md5) {
         String originalFileName = file.getOriginalFilename();
         if (originalFileName == null) {
             throw new InvalidParameterException(ErrorCode.INVALID_FILE_NAME);
         }
         String formatName = originalFileName.substring(originalFileName.lastIndexOf(".") + 1);
         String saveFileName = path + UUID.randomUUID() + "." + formatName;
+        InputStream inputStream;
+        try {
+            inputStream = file.getInputStream();
+        } catch (IOException e) {
+            throw new RestException(ErrorCode.FAILED_UPLOAD_TO_EXTERNAL);
+        }
+
         return uploadInputStream(bucketName, saveFileName,
                 file.getContentType(), file.getSize(),
-                file.getInputStream(), md5);
-
+                inputStream, md5);
     }
 
-    public FileBucket downloadFile(String bucketName, String path) throws Exception {
+    public FileBucket downloadFile(String bucketName, String path) {
         FileBucket fileBucket = new FileBucket();
         try {
             ResponseBytes<GetObjectResponse> bytesResponse = this.s3Client.getObjectAsBytes(GetObjectRequest.builder()
@@ -167,11 +211,11 @@ public class AmazonS3Util {
             fileBucket.setResource(resource);
         } catch (SdkClientException e) {
             log.error(e.toString());
-            log.error("downloadFile : AmazonServiceException (bucketName: {}, path: {} )", bucketName, path);
+            log.debug("downloadFile : AmazonServiceException (bucketName: {}, path: {} )", bucketName, path);
             throw new ServiceUnavailableException(ErrorCode.FAILED_DOWNLOAD_FROM_EXTERNAL);
         } catch (S3Exception e) {
             log.error(e.toString());
-            log.error("downloadFile : S3Exception (bucketName: {}, path: {} )", bucketName, path);
+            log.debug("downloadFile : S3Exception (bucketName: {}, path: {} )", bucketName, path);
             throw new ServiceUnavailableException(ErrorCode.FAILED_DOWNLOAD_FROM_EXTERNAL);
         }
         return fileBucket;
@@ -187,27 +231,45 @@ public class AmazonS3Util {
             log.debug(deleteObjectResponse.requestChargedAsString());
         } catch (SdkClientException e) {
             log.error(e.toString());
-            log.error("deleteFile : SdkClientException (bucketName: {}, path: {} )", bucketName, path);
+            log.debug("deleteFile : SdkClientException (bucketName: {}, path: {} )", bucketName, path);
             throw new ServiceUnavailableException(ErrorCode.FAILED_DELETE_FROM_EXTERNAL);
         } catch (S3Exception e) {
             log.error(e.toString());
-            log.error("deleteFile : S3Exception (bucketName: {}, path: {} )", bucketName, path);
+            log.debug("deleteFile : S3Exception (bucketName: {}, path: {} )", bucketName, path);
             throw new ServiceUnavailableException(ErrorCode.FAILED_DELETE_FROM_EXTERNAL);
         }
     }
 
-    public String signBucket(String bucketName, String keyName, int time) {
+    public boolean existsObject(String bucketName, String key) {
+        try {
+            this.s3Client.headObject(HeadObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .build());
+            return true;
+        } catch (NoSuchKeyException e) {
+            return false;
+        } catch (SdkClientException e) {
+            log.error("existsObject : SdkClientException (bucketName: {}, key: {})", bucketName, key);
+            throw new ServiceUnavailableException(ErrorCode.FAILED_DOWNLOAD_FROM_EXTERNAL);
+        } catch (S3Exception e) {
+            log.error("existsObject : S3Exception (bucketName: {}, key: {})", bucketName, key);
+            throw new ServiceUnavailableException(ErrorCode.FAILED_DOWNLOAD_FROM_EXTERNAL);
+        }
+    }
+
+    public String signBucket(String bucketName, String keyName, int time, String contentType) {
         String myURL = null;
 
         try {
             PutObjectRequest objectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(keyName)
-                    .contentType("application/octet-stream")
+                    .contentType(contentType != null ? contentType : "application/octet-stream")
                     .build();
 
             PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                    .signatureDuration(Duration.ofMinutes(10))
+                    .signatureDuration(Duration.ofMinutes(FileConfig.PRESIGNED_URL_EXPIRATION_MIN))
                     .putObjectRequest(objectRequest)
                     .build();
 
@@ -289,10 +351,10 @@ public class AmazonS3Util {
             log.debug("Presigned URL: " + presignedGetObjectRequest.url());
         } catch (SdkClientException e) {
             log.error(e.toString());
-            log.error("signedUrl : SdkClientException (bucketName: {}, objectKey: {} )", bucketName, objectKey);
+            log.debug("signedUrl : SdkClientException (bucketName: {}, objectKey: {} )", bucketName, objectKey);
         } catch (S3Exception e) {
             log.error(e.toString());
-            log.error("signedUrl : S3Exception (bucketName: {}, objectKey: {})", bucketName, objectKey);
+            log.debug("signedUrl : S3Exception (bucketName: {}, objectKey: {})", bucketName, objectKey);
         }
         /*catch (IOException e) {
             log.error("signedUrl : IOException (bucketName: {}, objectKey: {})", bucketName, objectKey);

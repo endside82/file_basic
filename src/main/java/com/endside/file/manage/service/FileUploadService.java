@@ -9,6 +9,7 @@ import com.endside.file.manage.constant.FileConfig;
 import com.endside.file.manage.constant.FileType;
 import com.endside.file.manage.constant.PublicImages;
 import com.endside.file.manage.dto.FileBucket;
+import com.endside.file.manage.response.SignedFileResponse;
 import com.endside.file.manage.service.repo.CommonFileRepo;
 import com.endside.file.manage.service.repo.S3PathGenerator;
 import com.endside.file.manage.service.repo.S3PathValidator;
@@ -17,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.endside.file.util.AmazonS3Util;
 
 import java.util.List;
 import java.util.UUID;
@@ -51,7 +54,7 @@ public class FileUploadService {
      * @return Path of updated file
      * @throws Exception
      */
-    public String uploadFile( MultipartFile file, String category, String type, String accountHex, String md5) throws Exception {
+    public String uploadFile( MultipartFile file, String category, String type, String accountHex, String md5) {
         CategoryType categoryType = CategoryType.getStorageTypeByCategory(category);
         FileType fileType = FileType.getFileTypeByTypePath(type);
         // 이미지 저장 경로 생성
@@ -70,7 +73,7 @@ public class FileUploadService {
      * @return Paths of uploaded files
      * @throws Exception 예외
      */
-    public List<FileUploadResponse> uploadFiles(MultipartFile[] files, String category, String type, String accountHex) throws Exception {
+    public List<FileUploadResponse> uploadFiles(MultipartFile[] files, String category, String type, String accountHex) {
         CategoryType categoryType = CategoryType.getStorageTypeByCategory(category);
         FileType fileType = FileType.getFileTypeByTypePath(type);
         // 이미지 저장 경로 생성
@@ -86,7 +89,7 @@ public class FileUploadService {
      * @return File Bucket include file information
      * @throws Exception
      */
-    public FileBucket getFile(String category, String path, String type, String accountHex) throws Exception {
+    public FileBucket getFile(String category, String path, String type, String accountHex) {
 
         CategoryType categoryType = CategoryType.getStorageTypeByCategory(category);
 
@@ -115,18 +118,27 @@ public class FileUploadService {
         commonFileRepo.deleteFile(s3PathGenerator.getBucketName(categoryType), path);
     }
 
-    public String getSignedUploadPath( String category, String type, String accountHex, String formatName) throws Exception {
+    public SignedFileResponse getSignedUploadPath(String category, String type, String accountHex, String formatName) {
         CategoryType categoryType = CategoryType.getStorageTypeByCategory(category);
         FileType fileType = FileType.getFileTypeByTypePath(type);
         // 이미지 저장 경로 생성
         S3AccessInfo accessInfo = s3PathGenerator.pathGenerator(categoryType, fileType, accountHex);
         String saveFileName = accessInfo.getPath() + UUID.randomUUID() + "." + formatName;
-        return commonFileRepo.getSignedUploadPath(accessInfo.getBucket(), saveFileName, FileConfig.getTimeByType(type));
+        String contentType = AmazonS3Util.getContentTypeByFormatName(formatName);
+        String url = commonFileRepo.getSignedUploadPath(accessInfo.getBucket(), saveFileName, FileConfig.getTimeByType(type), contentType);
+        return SignedFileResponse.builder()
+                .url(url)
+                .fileKey(saveFileName)
+                .build();
     }
 
-    public String getSignedPath( String category, String path, String type, String accountHex) {
+    public SignedFileResponse getSignedPath( String category, String path, String type, String accountHex) {
         CategoryType categoryType = CategoryType.getStorageTypeByCategory(category);
-        return commonFileRepo.getSignedPath(s3PathGenerator.getBucketName(categoryType), path, FileConfig.getTimeByType(type));
+        String url = commonFileRepo.getSignedPath(s3PathGenerator.getBucketName(categoryType), path, FileConfig.getTimeByType(type));
+        return SignedFileResponse
+                .builder()
+                .url(url)
+                .build();
     }
 
     /**
@@ -135,14 +147,14 @@ public class FileUploadService {
      * @return File Bucket include file information
      * @throws Exception
      */
-    public FileBucket getPublicFile(String path) throws Exception {
+    public FileBucket getPublicFile(String path) {
         if (!StringUtils.hasText(path)) {
             throw new InvalidParameterException(ErrorCode.INVALID_REQUEST_FILE_PATH);
         }
         if (publicImages.checkIsPublicResource(path)) {
             throw new AccessDeniedException(ErrorCode.RESOURCE_NOT_PUBLIC);
         }
-        CategoryType categoryType = CategoryType.getStorageTypeByCategory("resource");
+        CategoryType categoryType = CategoryType.RESOURCE;
         return commonFileRepo.getFile( s3PathGenerator.getBucketName(categoryType) , path );
     }
 

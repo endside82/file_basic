@@ -1,7 +1,7 @@
 spring:
   config:
     activate:
-      on-profile: default
+      on-profile: compose
   jackson:
     time-zone: Asia/Seoul
   servlet:
@@ -17,7 +17,7 @@ server:
       enabled: false
   port: 38082
 redis:
-  host: ${REDIS_HOST:127.0.0.1}
+  host: ${REDIS_HOST:redis}
   port: ${REDIS_PORT:6379}
   auth: ${REDIS_AUTH:false}
   password: ${REDIS_PASSWORD:}

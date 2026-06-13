@@ -2,6 +2,8 @@ spring:
   config:
     activate:
       on-profile: dev
+  jackson:
+    time-zone: Asia/Seoul
   servlet:
     multipart:
       max-file-size: 300MB
@@ -29,11 +31,26 @@ ssh:
 amazon:
   region: ${AWS_REGION:ap-northeast-2}
   s3:
-    ec2policy: false
+    ec2policy: ${AWS_S3_EC2_POLICY:false}
+    presigned-url-expiration-minutes: ${S3_PRESIGNED_URL_EXPIRATION_MINUTES:10}
     profile-bucket:
       name: ${S3_PROFILE_BUCKET:your-profile-bucket}
     resource-bucket:
       name: ${S3_RESOURCE_BUCKET:your-resource-bucket}
+    lecture-bucket:
+      name: ${S3_LECTURE_BUCKET:your-lecture-bucket}
+    chapter-bucket:
+      name: ${S3_CHAPTER_BUCKET:your-chapter-bucket}
+    question-bucket:
+      name: ${S3_QUESTION_BUCKET:your-question-bucket}
+    university-bucket:
+      name: ${S3_UNIVERSITY_BUCKET:your-university-bucket}
+    course:
+      name: ${S3_COURSE_BUCKET:your-course-bucket}
+    study:
+      name: ${S3_STUDY_BUCKET:your-study-bucket}
+    module:
+      name: ${S3_MODULE_BUCKET:your-module-bucket}
     credentials:
       access-key: ${AWS_S3_ACCESS_KEY:your-access-key}
       secret-key: ${AWS_S3_SECRET_KEY:your-secret-key}
@@ -45,12 +62,11 @@ amazon:
     path: common
 jwt:
   secret: ${JWT_SECRET:your-jwt-secret-key-min-32-characters}
-admin:
-  verification-key: ${ADMIN_VERIFICATION_KEY:your-admin-key}
-visible:
-  stack:
-    trace: true
 logging:
   level:
     root: info
     web: info
+cdn:
+  base-url: ${CDN_BASE_URL:https://cdn.example.com}
+admin:
+  verification-key: ${ADMIN_VERIFICATION_KEY:your-admin-key}

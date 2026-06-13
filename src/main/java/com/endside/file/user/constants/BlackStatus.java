@@ -16,11 +16,11 @@ public enum BlackStatus {
     BAN(10209,"ban"), // status:5
     ;
 
-    private final int error_code;
+    private final int errorCode;
     private final String status;
 
-    BlackStatus(final int error_code, final String status) {
-        this.error_code = error_code;
+    BlackStatus(final int errorCode, final String status) {
+        this.errorCode = errorCode;
         this.status = status;
     }
 

@@ -17,11 +17,11 @@ public class CommonFileRepo {
     @Resource
     AmazonS3Util amazonS3Util;
 
-    public String uploadFile(String bucketName, String path, MultipartFile file, String md5) throws Exception {
+    public String uploadFile(String bucketName, String path, MultipartFile file, String md5) {
         return amazonS3Util.uploadMultipartFile(bucketName, path, file, md5);
     }
 
-    public ArrayList<FileUploadResponse> uploadFiles(String bucketName, String path, MultipartFile[] files) throws Exception {
+    public ArrayList<FileUploadResponse> uploadFiles(String bucketName, String path, MultipartFile[] files) {
         ArrayList<FileUploadResponse> fileUploadResponses = new ArrayList<>();
         String filePath;
         FileUploadResponse  tempResponse;
@@ -38,12 +38,12 @@ public class CommonFileRepo {
         amazonS3Util.deleteFile(bucketName, path);
     }
 
-    public FileBucket getFile(String bucketName, String path) throws Exception {
+    public FileBucket getFile(String bucketName, String path) {
         return amazonS3Util.downloadFile(bucketName, path);
     }
 
-    public String getSignedUploadPath(String bucketName, String path, int time) {
-        return amazonS3Util.signBucket(bucketName, path, time);
+    public String getSignedUploadPath(String bucketName, String path, int time, String contentType) {
+        return amazonS3Util.signBucket(bucketName, path, time, contentType);
     }
 
     public String getSignedPath(String bucketName, String path, int time) {

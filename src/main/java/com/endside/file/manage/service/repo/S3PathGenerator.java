@@ -32,11 +32,39 @@ public class S3PathGenerator {
     @Value("${amazon.s3.resource-bucket.name}")
     private String amazonS3ResourceBucketName;
 
+    @Value("${amazon.s3.lecture-bucket.name}")
+    private String amazonS3LectureBucketName;
+
+    @Value("${amazon.s3.chapter-bucket.name}")
+    private String amazonS3ChapterBucketName;
+
+    @Value("${amazon.s3.question-bucket.name}")
+    private String amazonS3QuestionBucketName;
+
+    @Value("${amazon.s3.university-bucket.name}")
+    private String amazonS3UniversityBucketName;
+
+    @Value("${amazon.s3.course.name}")
+    private String amazonS3CourseBucketName;
+
+    @Value("${amazon.s3.study.name}")
+    private String amazonS3StudyBucketName;
+
+    @Value("${amazon.s3.module.name}")
+    private String amazonS3ModuleBucketName;
+
 
     public String getBucketName(CategoryType categoryType) {
         switch (categoryType) {
             case PROFILE: return amazonS3ProfileBucketName;
             case RESOURCE: return amazonS3ResourceBucketName;
+            case LECTURE: return amazonS3LectureBucketName;
+            case CHAPTER: return amazonS3ChapterBucketName;
+            case QUESTION: return amazonS3QuestionBucketName;
+            case UNIVERSITY: return amazonS3UniversityBucketName;
+            case COURSE: return amazonS3CourseBucketName;
+            case STUDY: return amazonS3StudyBucketName;
+            case MODULE: return amazonS3ModuleBucketName;
             default:
                 throw new InvalidParameterException(ErrorCode.INVALID_CATEGORY);
         }
@@ -46,7 +74,7 @@ public class S3PathGenerator {
      * 이미지 저장 경로 생성  (카테고리에 따라 각기 다른 경로 )*
      * @return
      */
-    public S3AccessInfo pathGenerator(CategoryType categoryType, FileType fileType, String accountHex) throws Exception {
+    public S3AccessInfo pathGenerator(CategoryType categoryType, FileType fileType, String accountHex) {
         S3PathInfo s3PathInfo = getS3PathInfo(categoryType, fileType, accountHex);
         String s3Path = generateS3Path(categoryType, s3PathInfo.getTypePath(), s3PathInfo.getAddPath());
 
@@ -59,6 +87,7 @@ public class S3PathGenerator {
         String bucket;
         switch (categoryType) {
             case PROFILE:
+            case STUDY:
                 typePath = fileType.getTypeString();
                 addPath = profileAddPath(accountHex);
                 bucket = getBucketName(categoryType);
@@ -68,7 +97,16 @@ public class S3PathGenerator {
                 addPath = appPathSimpleDate();
                 bucket = getBucketName(categoryType);
                 break;
-
+            case LECTURE:
+            case CHAPTER:
+            case QUESTION:
+            case UNIVERSITY:
+            case COURSE:
+            case MODULE:
+                typePath = fileType.getTypeString();
+                addPath = appPathSimpleDate();
+                bucket = getBucketName(categoryType);
+                break;
             default:
                 throw new InvalidParameterException(ErrorCode.INVALID_CATEGORY);
         }
@@ -81,6 +119,13 @@ public class S3PathGenerator {
         switch (categoryType) {
             case PROFILE:
             case RESOURCE:
+            case LECTURE:
+            case CHAPTER:
+            case QUESTION:
+            case UNIVERSITY:
+            case COURSE:
+            case STUDY:
+            case MODULE:
                 s3Path = typePath + "/" + addPath;
                 break;
             case UNKNOWN:
@@ -118,10 +163,6 @@ public class S3PathGenerator {
 
     private String aeItemAddPath() {
         return LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "/";
-    }
-
-    private String snsAddPath(String accountHex) {
-        return "sns/" + accountHex + "/";
     }
 
     private String  appPathDateAccount(String accountHex) {

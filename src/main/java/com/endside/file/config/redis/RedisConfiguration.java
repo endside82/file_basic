@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
-import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +16,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
@@ -40,7 +39,7 @@ public class RedisConfiguration {
     private int port;
     @Value("${redis.authentication.database:4}")
     private int authDatabase;
-    @Value("${redis.account.database:0}")
+    @Value("${redis.user.database:0}")
     private int userDatabase;
     @Value("${redis.password:password}")
     private String password;
@@ -48,7 +47,6 @@ public class RedisConfiguration {
     private boolean redisAuth;
     @Value("${redis.type:STANDARD}")
     private String redisType;
-
     @Value("${ssh.use:false}")
     private Boolean isUse = false;
 
@@ -71,7 +69,7 @@ public class RedisConfiguration {
                 tunnel.shutdown();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed to shutdown SSH tunnel", e);
         }
     }
 
@@ -95,11 +93,9 @@ public class RedisConfiguration {
 
     private LettuceConnectionFactory getLettuceConnectionFactory(int DBnum) {
         if (redisType.compareTo("CLUSTER") == 0) {
-            // clustering 구성 config
+            // clustering 구성 config (Redis Cluster 는 multi-DB 미지원)
             RedisClusterConfiguration redisClusterConfiguration = getRedisClusterConf();
-            LettuceConnectionFactory redisConnectionFactory = new LettuceConnectionFactory(redisClusterConfiguration);
-            redisConnectionFactory.setDatabase(DBnum);
-            return redisConnectionFactory;
+            return new LettuceConnectionFactory(redisClusterConfiguration);
         }
         // else Redis is standard
         RedisStandaloneConfiguration redisStandaloneConfiguration = getRedisStandardConf(DBnum);
@@ -143,7 +139,7 @@ public class RedisConfiguration {
     public CacheManager cacheManager() {
         RedisCacheManager.RedisCacheManagerBuilder builder = RedisCacheManager.RedisCacheManagerBuilder.fromConnectionFactory(authRedisConnectionFactory());
         RedisCacheConfiguration configuration = RedisCacheConfiguration.defaultCacheConfig()
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(GenericJacksonJsonRedisSerializer.builder().build()))
                 .prefixCacheNameWith("cache:")
                 .entryTtl(Duration.ofHours(24L));
         builder.cacheDefaults(configuration);

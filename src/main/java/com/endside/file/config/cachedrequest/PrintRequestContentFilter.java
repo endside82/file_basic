@@ -14,7 +14,7 @@ import java.io.IOException;
 
 @Slf4j
 @Component
-@Profile({"default","dev"})
+@Profile({"default","dev","compose"})
 @WebFilter(filterName = "printRequestContentFilter", urlPatterns = "/file/*")
 public class PrintRequestContentFilter extends OncePerRequestFilter {
     @Override
